@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Planning Poker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Planning Poker</h1>
+
+    <!-- Landing Page -->
+    <div id="landing-page">
+      <div class="form-section">
+        <h2>Create New Session</h2>
+        <input type="text" id="create-name" placeholder="Your name" maxlength="20">
+        <button id="create-btn">Create Session</button>
+      </div>
+
+      <div class="divider">or</div>
+
+      <div class="form-section">
+        <h2>Join Session</h2>
+        <input type="text" id="join-name" placeholder="Your name" maxlength="20">
+        <input type="text" id="join-session-id" placeholder="Session ID" maxlength="6">
+        <button id="join-btn">Join Session</button>
+      </div>
+
+      <p id="error-message" class="error"></p>
+    </div>
+
+    <!-- Session Page -->
+    <div id="session-page" class="hidden">
+      <div class="session-header">
+        <div class="session-info">
+          <span>Session: <strong id="session-id-display"></strong></span>
+          <button id="copy-link-btn" title="Copy invite link">Copy Link</button>
+        </div>
+        <div id="moderator-badge" class="hidden">Moderator</div>
+      </div>
+
+      <!-- Participants List -->
+      <div class="participants-section">
+        <h3>Participants</h3>
+        <ul id="participants-list"></ul>
+      </div>
+
+      <!-- Cards -->
+      <div class="cards-section">
+        <h3>Select Your Estimate</h3>
+        <div id="cards-container" class="cards">
+          <button class="card" data-value="1">1</button>
+          <button class="card" data-value="2">2</button>
+          <button class="card" data-value="3">3</button>
+          <button class="card" data-value="5">5</button>
+          <button class="card" data-value="8">8</button>
+          <button class="card" data-value="13">13</button>
+          <button class="card" data-value="20">20</button>
+        </div>
+      </div>
+
+      <!-- Moderator Controls -->
+      <div id="moderator-controls" class="hidden">
+        <button id="reveal-btn">Reveal Votes</button>
+        <button id="reset-btn">New Round</button>
+      </div>
+
+      <!-- Results -->
+      <div id="results-section" class="hidden">
+        <h3>Results</h3>
+        <div id="results-list"></div>
+        <div id="average-display"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
