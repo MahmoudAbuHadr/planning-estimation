@@ -118,6 +118,53 @@ io.on('connection', (socket) => {
     console.log(`${name} joined session ${sessionId}`);
   });
 
+  // Rejoin after page refresh
+  socket.on('rejoin-session', ({ sessionId, name, wasModerator }) => {
+    const session = sessions[sessionId];
+
+    if (!session) {
+      socket.emit('rejoin-failed', { reason: 'session-not-found' });
+      return;
+    }
+
+    // Check if name already exists (different socket)
+    let finalName = name;
+    const existingNames = Object.values(session.participants).map(p => p.name);
+
+    if (existingNames.includes(name)) {
+      // Auto-rename: "Alice" → "Alice (2)", "Alice (3)", etc.
+      let counter = 2;
+      while (existingNames.includes(`${name} (${counter})`)) {
+        counter++;
+      }
+      finalName = `${name} (${counter})`;
+    }
+
+    // Restore moderator status if they were moderator and current moderator slot is "orphaned"
+    let becomeModerator = false;
+    if (wasModerator && !session.participants[session.moderatorId]) {
+      session.moderatorId = socket.id;
+      becomeModerator = true;
+    }
+
+    session.participants[socket.id] = { name: finalName, vote: null };
+    currentSessionId = sessionId;
+    socket.join(sessionId);
+
+    socket.emit('session-joined', {
+      sessionId,
+      isModerator: becomeModerator,
+      userName: finalName
+    });
+    io.to(sessionId).emit('state-update', getSessionState(session));
+
+    if (session.revealed) {
+      socket.emit('votes-revealed', getRevealedVotes(session));
+    }
+
+    console.log(`${finalName} rejoined session ${sessionId}`);
+  });
+
   // Submit a vote
   socket.on('vote', ({ value }) => {
     if (!currentSessionId || !sessions[currentSessionId]) return;
@@ -164,6 +211,30 @@ io.on('connection', (socket) => {
     io.to(currentSessionId).emit('votes-reset');
 
     console.log(`Votes reset in session ${currentSessionId}`);
+  });
+
+  // Promote another participant to moderator (current moderator only)
+  socket.on('promote-moderator', ({ targetId }) => {
+    if (!currentSessionId || !sessions[currentSessionId]) return;
+
+    const session = sessions[currentSessionId];
+
+    // Only current moderator can promote
+    if (socket.id !== session.moderatorId) return;
+
+    // Target must exist in session
+    if (!session.participants[targetId]) return;
+
+    // Can't promote yourself
+    if (targetId === socket.id) return;
+
+    // Transfer moderator status
+    session.moderatorId = targetId;
+
+    // Notify all clients of the change
+    io.to(currentSessionId).emit('state-update', getSessionState(session));
+
+    console.log(`Moderator changed in session ${currentSessionId}: ${session.participants[targetId].name}`);
   });
 
   // Handle disconnect

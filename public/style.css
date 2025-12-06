@@ -281,9 +281,22 @@ h2, h3 {
   color: #4a90d9;
 }
 
-.player-card.no-vote .corner,
+.player-card.no-vote {
+  background: linear-gradient(145deg, #ffffff 0%, #f0f0f0 100%);
+  border: 2px solid #999;
+}
+
 .player-card.no-vote .center-value {
-  color: rgba(255,255,255,0.4);
+  font-size: 28px;
+}
+
+.player-card.no-vote .corner {
+  color: #e74c3c;
+  font-size: 10px;
+}
+
+.player-card.no-vote .center-value {
+  color: #e74c3c;
 }
 
 .player-name {
@@ -407,4 +420,35 @@ h2, h3 {
 
 #average-display strong {
   font-size: 24px;
+}
+
+/* Context Menu */
+.context-menu {
+  position: fixed;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.context-menu button {
+  display: block;
+  width: 100%;
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+  transition: background 0.15s;
+}
+
+.context-menu button:hover {
+  background: #f0f0f0;
+}
+
+.player-seat.can-promote {
+  cursor: context-menu;
 }

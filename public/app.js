@@ -7,6 +7,44 @@ let selectedCard = null;
 let isRevealed = false;
 let serverInfo = null;
 
+// localStorage persistence
+const STORAGE_KEY = 'planning-poker-session';
+const USERNAME_KEY = 'planning-poker-username';
+
+function saveSession(sessionId, userName, isModerator) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ sessionId, userName, isModerator }));
+  localStorage.setItem(USERNAME_KEY, userName); // Remember username separately
+}
+
+function loadSession() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY));
+  } catch {
+    return null;
+  }
+}
+
+function loadUsername() {
+  return localStorage.getItem(USERNAME_KEY) || '';
+}
+
+function clearSession() {
+  localStorage.removeItem(STORAGE_KEY);
+  // Keep USERNAME_KEY so name is remembered
+}
+
+// Attempt to rejoin saved session on page load
+socket.on('connect', () => {
+  const saved = loadSession();
+  if (saved) {
+    socket.emit('rejoin-session', {
+      sessionId: saved.sessionId,
+      name: saved.userName,
+      wasModerator: saved.isModerator
+    });
+  }
+});
+
 // Fetch server info for network URL
 fetch('/api/server-info')
   .then(res => res.json())
@@ -33,12 +71,24 @@ const revealBtn = document.getElementById('reveal-btn');
 const resetBtn = document.getElementById('reset-btn');
 const resultsSection = document.getElementById('results-section');
 const averageDisplay = document.getElementById('average-display');
+const contextMenu = document.getElementById('context-menu');
+const promoteBtn = document.getElementById('promote-btn');
+
+// Context menu state
+let contextMenuTargetId = null;
 
 // Check for session ID in URL
 const urlParams = new URLSearchParams(window.location.search);
 const sessionFromUrl = urlParams.get('session');
 if (sessionFromUrl) {
   joinSessionIdInput.value = sessionFromUrl;
+}
+
+// Pre-fill name fields with remembered username
+const rememberedName = loadUsername();
+if (rememberedName) {
+  createNameInput.value = rememberedName;
+  joinNameInput.value = rememberedName;
 }
 
 // Event Listeners
@@ -71,13 +121,45 @@ copyLinkBtn.addEventListener('click', () => {
     ? `http://${serverInfo.ip}:${serverInfo.port}`
     : window.location.origin;
   const url = `${baseUrl}?session=${currentSessionId}`;
-  navigator.clipboard.writeText(url).then(() => {
+
+  copyToClipboard(url).then(() => {
     copyLinkBtn.textContent = 'Copied!';
     setTimeout(() => {
       copyLinkBtn.textContent = 'Copy Link';
     }, 2000);
+  }).catch(() => {
+    // If clipboard fails, show the URL in a prompt
+    prompt('Copy this link:', url);
   });
 });
+
+// Clipboard helper with fallback for non-HTTPS contexts
+function copyToClipboard(text) {
+  // Try modern clipboard API first
+  if (navigator.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(text);
+  }
+
+  // Fallback for non-secure contexts (like http:// on network IP)
+  return new Promise((resolve, reject) => {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-9999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      resolve();
+    } catch (err) {
+      document.body.removeChild(textArea);
+      reject(err);
+    }
+  });
+}
 
 cardsContainer.addEventListener('click', (e) => {
   if (e.target.classList.contains('card') && !isRevealed) {
@@ -93,6 +175,39 @@ revealBtn.addEventListener('click', () => {
 
 resetBtn.addEventListener('click', () => {
   socket.emit('reset');
+});
+
+// Context menu for promoting participants (moderator only)
+participantsAroundTable.addEventListener('contextmenu', (e) => {
+  const playerSeat = e.target.closest('.player-seat');
+  if (!playerSeat || !isModerator) return;
+
+  const participantId = playerSeat.dataset.participantId;
+  // Don't show menu for self
+  if (participantId === socket.id) return;
+
+  e.preventDefault();
+  contextMenuTargetId = participantId;
+
+  // Position the context menu
+  contextMenu.style.left = `${e.clientX}px`;
+  contextMenu.style.top = `${e.clientY}px`;
+  contextMenu.classList.remove('hidden');
+});
+
+// Hide context menu on click elsewhere
+document.addEventListener('click', () => {
+  contextMenu.classList.add('hidden');
+  contextMenuTargetId = null;
+});
+
+// Promote button click
+promoteBtn.addEventListener('click', () => {
+  if (contextMenuTargetId) {
+    socket.emit('promote-moderator', { targetId: contextMenuTargetId });
+    contextMenu.classList.add('hidden');
+    contextMenuTargetId = null;
+  }
 });
 
 // Allow Enter key to submit
@@ -112,23 +227,46 @@ joinSessionIdInput.addEventListener('keypress', (e) => {
 socket.on('session-created', ({ sessionId }) => {
   currentSessionId = sessionId;
   isModerator = true;
+  saveSession(sessionId, createNameInput.value.trim(), true);
   showSessionPage();
 });
 
-socket.on('session-joined', ({ sessionId, isModerator: mod }) => {
+socket.on('session-joined', ({ sessionId, isModerator: mod, userName }) => {
   currentSessionId = sessionId;
   isModerator = mod;
+  // Use userName from server (may be auto-renamed if duplicate)
+  const name = userName || joinNameInput.value.trim();
+  saveSession(sessionId, name, mod);
   showSessionPage();
 });
 
 socket.on('state-update', (state) => {
   updateParticipants(state.participants);
 
-  // Check if we became moderator (promotion)
-  if (state.moderatorId === socket.id && !isModerator) {
+  // Check if moderator status changed
+  const wasModerator = isModerator;
+  const isNowModerator = state.moderatorId === socket.id;
+
+  if (isNowModerator && !wasModerator) {
+    // Promoted to moderator
     isModerator = true;
     moderatorBadge.classList.remove('hidden');
     moderatorControls.classList.remove('hidden');
+    // Update localStorage
+    const saved = loadSession();
+    if (saved) {
+      saveSession(saved.sessionId, saved.userName, true);
+    }
+  } else if (!isNowModerator && wasModerator) {
+    // Demoted from moderator
+    isModerator = false;
+    moderatorBadge.classList.add('hidden');
+    moderatorControls.classList.add('hidden');
+    // Update localStorage
+    const saved = loadSession();
+    if (saved) {
+      saveSession(saved.sessionId, saved.userName, false);
+    }
   }
 
   isRevealed = state.revealed;
@@ -152,6 +290,14 @@ socket.on('votes-reset', () => {
 
 socket.on('error', ({ message }) => {
   showError(message);
+  if (message === 'Session not found') {
+    clearSession();
+  }
+});
+
+socket.on('rejoin-failed', () => {
+  clearSession();
+  // Name fields already pre-filled from loadUsername() on page load
 });
 
 // Helper Functions
@@ -192,9 +338,10 @@ function updateParticipants(participants) {
     const pos = positions[index];
     const isYou = p.id === socket.id;
     const cardClass = p.hasVoted ? 'face-down' : 'no-card';
+    const canPromote = isModerator && !isYou;
 
     return `
-      <div class="player-seat" style="left: ${pos.x}%; top: ${pos.y}%; transform: translate(-50%, -50%);">
+      <div class="player-seat ${canPromote ? 'can-promote' : ''}" data-participant-id="${p.id}" style="left: ${pos.x}%; top: ${pos.y}%; transform: translate(-50%, -50%);">
         <div class="player-card ${cardClass}"></div>
         <span class="player-name ${p.isModerator ? 'is-moderator' : ''} ${isYou ? 'is-you' : ''}">
           ${escapeHtml(p.name)}${isYou ? ' (you)' : ''}
@@ -234,15 +381,19 @@ function updateCardsOnTable(votes) {
     const isYou = v.id === socket.id;
     const hasVote = v.vote !== null;
     const displayValue = hasVote ? v.vote : '?';
+    const canPromote = isModerator && !isYou;
 
+    const joker = '🃏';
     const cardContent = hasVote
       ? `<span class="corner top">${displayValue}</span>
          <span class="center-value">${displayValue}</span>
          <span class="corner bottom">${displayValue}</span>`
-      : '?';
+      : `<span class="corner top">${joker}</span>
+         <span class="center-value">${joker}</span>
+         <span class="corner bottom">${joker}</span>`;
 
     return `
-      <div class="player-seat" style="left: ${pos.x}%; top: ${pos.y}%; transform: translate(-50%, -50%);">
+      <div class="player-seat ${canPromote ? 'can-promote' : ''}" data-participant-id="${v.id}" style="left: ${pos.x}%; top: ${pos.y}%; transform: translate(-50%, -50%);">
         <div class="player-card ${hasVote ? 'revealed' : 'no-vote'}">
           ${cardContent}
         </div>
