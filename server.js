@@ -48,6 +48,15 @@ function getSessionState(session) {
   };
 }
 
+// Check if all votes are unanimous (everyone voted the same)
+function getUnanimousVote(session) {
+  const votes = Object.values(session.participants)
+    .map(p => p.vote)
+    .filter(v => v !== null);
+  if (votes.length === 0) return null;
+  return votes.every(v => v === votes[0]) ? votes[0] : null;
+}
+
 // Get revealed votes (includes actual vote values)
 function getRevealedVotes(session) {
   const votes = Object.entries(session.participants).map(([socketId, data]) => ({
@@ -224,21 +233,52 @@ io.on('connection', (socket) => {
     console.log(`Votes reset (no save) in session ${currentSessionId}`);
   });
 
-  // New round - save current average to history and reset (moderator only)
+  // New round - check for unanimous vote or prompt for result (moderator only)
   socket.on('new-round', () => {
     if (!currentSessionId || !sessions[currentSessionId]) return;
 
     const session = sessions[currentSessionId];
     if (socket.id !== session.moderatorId) return;
 
-    // Save current round to history if votes were revealed
-    if (session.revealed) {
-      const { average } = getRevealedVotes(session);
-      if (average !== null) {
-        session.history.push({ average });
-        io.to(currentSessionId).emit('history-update', { history: session.history });
-      }
+    // Only proceed if votes were revealed
+    if (!session.revealed) return;
+
+    // Check for unanimous vote
+    const unanimousVote = getUnanimousVote(session);
+
+    if (unanimousVote !== null) {
+      // 100% agreement - auto-save and proceed
+      const roundName = `Round ${session.history.length + 1}`;
+      session.history.push({ name: roundName, result: unanimousVote });
+      io.to(currentSessionId).emit('history-update', { history: session.history });
+
+      // Clear all votes
+      Object.keys(session.participants).forEach(id => {
+        session.participants[id].vote = null;
+      });
+      session.revealed = false;
+
+      io.to(currentSessionId).emit('state-update', getSessionState(session));
+      io.to(currentSessionId).emit('votes-reset');
+
+      console.log(`New round (unanimous: ${unanimousVote}) in session ${currentSessionId}`);
+    } else {
+      // No agreement - prompt moderator for result
+      socket.emit('prompt-result', { roundNumber: session.history.length + 1 });
     }
+  });
+
+  // Submit round result after prompt (moderator only)
+  socket.on('submit-round-result', ({ result, name }) => {
+    if (!currentSessionId || !sessions[currentSessionId]) return;
+
+    const session = sessions[currentSessionId];
+    if (socket.id !== session.moderatorId) return;
+
+    // Save to history with provided name or default
+    const roundName = name && name.trim() ? name.trim() : `Round ${session.history.length + 1}`;
+    session.history.push({ name: roundName, result: parseInt(result) });
+    io.to(currentSessionId).emit('history-update', { history: session.history });
 
     // Clear all votes
     Object.keys(session.participants).forEach(id => {
@@ -249,7 +289,24 @@ io.on('connection', (socket) => {
     io.to(currentSessionId).emit('state-update', getSessionState(session));
     io.to(currentSessionId).emit('votes-reset');
 
-    console.log(`New round in session ${currentSessionId}, history: ${session.history.length} rounds`);
+    console.log(`New round (result: ${result}) in session ${currentSessionId}, history: ${session.history.length} rounds`);
+  });
+
+  // Update round name in history (moderator only)
+  socket.on('update-round-name', ({ index, name }) => {
+    if (!currentSessionId || !sessions[currentSessionId]) return;
+
+    const session = sessions[currentSessionId];
+    if (socket.id !== session.moderatorId) return;
+
+    // Validate index
+    if (index < 0 || index >= session.history.length) return;
+
+    // Update the name
+    session.history[index].name = name && name.trim() ? name.trim() : `Round ${index + 1}`;
+    io.to(currentSessionId).emit('history-update', { history: session.history });
+
+    console.log(`Round ${index + 1} renamed to "${session.history[index].name}" in session ${currentSessionId}`);
   });
 
   // Clear all history (moderator only)

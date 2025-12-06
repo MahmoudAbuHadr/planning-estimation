@@ -93,6 +93,33 @@
     <div id="context-menu" class="context-menu hidden">
       <button id="promote-btn">Promote to Moderator</button>
     </div>
+
+    <!-- Result Modal -->
+    <div id="result-modal" class="modal hidden">
+      <div class="modal-content">
+        <h3>Enter Round Result</h3>
+        <div class="modal-field">
+          <label for="result-value">Result (required):</label>
+          <select id="result-value">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="5">5</option>
+            <option value="8">8</option>
+            <option value="13">13</option>
+            <option value="20">20</option>
+          </select>
+        </div>
+        <div class="modal-field">
+          <label for="result-name">Round name (optional):</label>
+          <input type="text" id="result-name" placeholder="e.g., User Story #42" maxlength="50">
+        </div>
+        <div class="modal-buttons">
+          <button id="result-cancel-btn" class="modal-btn cancel">Cancel</button>
+          <button id="result-submit-btn" class="modal-btn submit">Submit</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>

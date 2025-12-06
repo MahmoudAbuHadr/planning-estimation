@@ -78,6 +78,11 @@ const historySummary = document.getElementById('history-summary');
 const clearHistoryBtn = document.getElementById('clear-history-btn');
 const contextMenu = document.getElementById('context-menu');
 const promoteBtn = document.getElementById('promote-btn');
+const resultModal = document.getElementById('result-modal');
+const resultValue = document.getElementById('result-value');
+const resultName = document.getElementById('result-name');
+const resultCancelBtn = document.getElementById('result-cancel-btn');
+const resultSubmitBtn = document.getElementById('result-submit-btn');
 
 // Context menu state
 let contextMenuTargetId = null;
@@ -188,6 +193,22 @@ newRoundBtn.addEventListener('click', () => {
 
 clearHistoryBtn.addEventListener('click', () => {
   socket.emit('clear-history');
+});
+
+// Result modal handlers
+resultCancelBtn.addEventListener('click', () => {
+  resultModal.classList.add('hidden');
+  resultName.value = '';
+  resultValue.value = '1';
+});
+
+resultSubmitBtn.addEventListener('click', () => {
+  const result = resultValue.value;
+  const name = resultName.value.trim();
+  socket.emit('submit-round-result', { result, name });
+  resultModal.classList.add('hidden');
+  resultName.value = '';
+  resultValue.value = '1';
 });
 
 // Context menu for promoting participants (moderator only)
@@ -303,6 +324,13 @@ socket.on('votes-reset', () => {
 
 socket.on('history-update', ({ history }) => {
   updateHistory(history);
+});
+
+socket.on('prompt-result', ({ roundNumber }) => {
+  // Show modal for moderator to enter result
+  resultName.placeholder = `Round ${roundNumber} (or custom name)`;
+  resultModal.classList.remove('hidden');
+  resultValue.focus();
 });
 
 socket.on('error', ({ message }) => {
@@ -473,20 +501,66 @@ function updateHistory(history) {
 
   historySection.classList.remove('hidden');
 
-  // Render history items
+  // Render history items (using name and result instead of average)
+  // Moderator can click on name to edit it
   historyList.innerHTML = history.map((item, index) => `
     <div class="history-item">
-      <span class="round-number">Round ${index + 1}</span>
-      <span class="round-average">${item.average}</span>
+      <span class="round-name ${isModerator ? 'editable' : ''}" data-index="${index}">${escapeHtml(item.name)}</span>
+      <span class="round-result">${item.result}</span>
     </div>
   `).join('');
 
+  // Add click handlers for editable names (moderator only)
+  if (isModerator) {
+    historyList.querySelectorAll('.round-name.editable').forEach(span => {
+      span.addEventListener('click', startEditingRoundName);
+    });
+  }
+
   // Calculate and show summary
   const totalRounds = history.length;
-  const totalPoints = history.reduce((sum, item) => sum + parseFloat(item.average), 0);
+  const totalPoints = history.reduce((sum, item) => sum + item.result, 0);
 
   historySummary.innerHTML = `
     <span class="total-label">Total: ${totalRounds} rounds</span>
-    <span class="total-value">${totalPoints.toFixed(1)} points</span>
+    <span class="total-value">${totalPoints} points</span>
   `;
+}
+
+// Start editing a round name inline
+function startEditingRoundName(e) {
+  const span = e.target;
+  const index = parseInt(span.dataset.index);
+  const currentName = span.textContent;
+
+  // Create input element
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = currentName;
+  input.className = 'round-name-input';
+  input.maxLength = 50;
+
+  // Replace span with input
+  span.replaceWith(input);
+  input.focus();
+  input.select();
+
+  // Save on Enter or blur
+  const saveEdit = () => {
+    const newName = input.value.trim();
+    socket.emit('update-round-name', { index, name: newName });
+    // The history-update event will re-render with the new name
+  };
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveEdit();
+    } else if (e.key === 'Escape') {
+      // Cancel edit - re-render history
+      socket.emit('update-round-name', { index, name: currentName });
+    }
+  });
+
+  input.addEventListener('blur', saveEdit);
 }
