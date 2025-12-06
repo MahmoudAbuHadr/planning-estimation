@@ -252,6 +252,19 @@ io.on('connection', (socket) => {
     console.log(`New round in session ${currentSessionId}, history: ${session.history.length} rounds`);
   });
 
+  // Clear all history (moderator only)
+  socket.on('clear-history', () => {
+    if (!currentSessionId || !sessions[currentSessionId]) return;
+
+    const session = sessions[currentSessionId];
+    if (socket.id !== session.moderatorId) return;
+
+    session.history = [];
+    io.to(currentSessionId).emit('history-update', { history: session.history });
+
+    console.log(`History cleared in session ${currentSessionId}`);
+  });
+
   // Promote another participant to moderator (current moderator only)
   socket.on('promote-moderator', ({ targetId }) => {
     if (!currentSessionId || !sessions[currentSessionId]) return;

@@ -75,6 +75,7 @@ const averageDisplay = document.getElementById('average-display');
 const historySection = document.getElementById('history-section');
 const historyList = document.getElementById('history-list');
 const historySummary = document.getElementById('history-summary');
+const clearHistoryBtn = document.getElementById('clear-history-btn');
 const contextMenu = document.getElementById('context-menu');
 const promoteBtn = document.getElementById('promote-btn');
 
@@ -183,6 +184,10 @@ resetVotesBtn.addEventListener('click', () => {
 
 newRoundBtn.addEventListener('click', () => {
   socket.emit('new-round');
+});
+
+clearHistoryBtn.addEventListener('click', () => {
+  socket.emit('clear-history');
 });
 
 // Context menu for promoting participants (moderator only)
