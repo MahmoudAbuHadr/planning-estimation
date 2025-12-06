@@ -68,9 +68,13 @@ const tableStatus = document.getElementById('table-status');
 const cardsContainer = document.getElementById('cards-container');
 const moderatorControls = document.getElementById('moderator-controls');
 const revealBtn = document.getElementById('reveal-btn');
-const resetBtn = document.getElementById('reset-btn');
+const resetVotesBtn = document.getElementById('reset-votes-btn');
+const newRoundBtn = document.getElementById('new-round-btn');
 const resultsSection = document.getElementById('results-section');
 const averageDisplay = document.getElementById('average-display');
+const historySection = document.getElementById('history-section');
+const historyList = document.getElementById('history-list');
+const historySummary = document.getElementById('history-summary');
 const contextMenu = document.getElementById('context-menu');
 const promoteBtn = document.getElementById('promote-btn');
 
@@ -173,8 +177,12 @@ revealBtn.addEventListener('click', () => {
   socket.emit('reveal');
 });
 
-resetBtn.addEventListener('click', () => {
-  socket.emit('reset');
+resetVotesBtn.addEventListener('click', () => {
+  socket.emit('reset-votes');
+});
+
+newRoundBtn.addEventListener('click', () => {
+  socket.emit('new-round');
 });
 
 // Context menu for promoting participants (moderator only)
@@ -286,6 +294,10 @@ socket.on('votes-reset', () => {
   resultsSection.classList.add('hidden');
   clearCardSelection();
   updateCardState();
+});
+
+socket.on('history-update', ({ history }) => {
+  updateHistory(history);
 });
 
 socket.on('error', ({ message }) => {
@@ -446,4 +458,30 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+function updateHistory(history) {
+  if (history.length === 0) {
+    historySection.classList.add('hidden');
+    return;
+  }
+
+  historySection.classList.remove('hidden');
+
+  // Render history items
+  historyList.innerHTML = history.map((item, index) => `
+    <div class="history-item">
+      <span class="round-number">Round ${index + 1}</span>
+      <span class="round-average">${item.average}</span>
+    </div>
+  `).join('');
+
+  // Calculate and show summary
+  const totalRounds = history.length;
+  const totalPoints = history.reduce((sum, item) => sum + parseFloat(item.average), 0);
+
+  historySummary.innerHTML = `
+    <span class="total-label">Total: ${totalRounds} rounds</span>
+    <span class="total-value">${totalPoints.toFixed(1)} points</span>
+  `;
 }

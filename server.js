@@ -79,7 +79,8 @@ io.on('connection', (socket) => {
       participants: {
         [socket.id]: { name, vote: null }
       },
-      revealed: false
+      revealed: false,
+      history: []
     };
 
     currentSessionId = sessionId;
@@ -113,6 +114,11 @@ io.on('connection', (socket) => {
     // If votes were already revealed, send them to the new participant
     if (session.revealed) {
       socket.emit('votes-revealed', getRevealedVotes(session));
+    }
+
+    // Send history to new participant
+    if (session.history.length > 0) {
+      socket.emit('history-update', { history: session.history });
     }
 
     console.log(`${name} joined session ${sessionId}`);
@@ -162,6 +168,11 @@ io.on('connection', (socket) => {
       socket.emit('votes-revealed', getRevealedVotes(session));
     }
 
+    // Send history to rejoining participant
+    if (session.history.length > 0) {
+      socket.emit('history-update', { history: session.history });
+    }
+
     console.log(`${finalName} rejoined session ${sessionId}`);
   });
 
@@ -194,12 +205,40 @@ io.on('connection', (socket) => {
     console.log(`Votes revealed in session ${currentSessionId}`);
   });
 
-  // Reset for next round (moderator only)
-  socket.on('reset', () => {
+  // Reset votes without saving to history (moderator only)
+  socket.on('reset-votes', () => {
     if (!currentSessionId || !sessions[currentSessionId]) return;
 
     const session = sessions[currentSessionId];
     if (socket.id !== session.moderatorId) return;
+
+    // Clear all votes without saving to history
+    Object.keys(session.participants).forEach(id => {
+      session.participants[id].vote = null;
+    });
+    session.revealed = false;
+
+    io.to(currentSessionId).emit('state-update', getSessionState(session));
+    io.to(currentSessionId).emit('votes-reset');
+
+    console.log(`Votes reset (no save) in session ${currentSessionId}`);
+  });
+
+  // New round - save current average to history and reset (moderator only)
+  socket.on('new-round', () => {
+    if (!currentSessionId || !sessions[currentSessionId]) return;
+
+    const session = sessions[currentSessionId];
+    if (socket.id !== session.moderatorId) return;
+
+    // Save current round to history if votes were revealed
+    if (session.revealed) {
+      const { average } = getRevealedVotes(session);
+      if (average !== null) {
+        session.history.push({ average });
+        io.to(currentSessionId).emit('history-update', { history: session.history });
+      }
+    }
 
     // Clear all votes
     Object.keys(session.participants).forEach(id => {
@@ -210,7 +249,7 @@ io.on('connection', (socket) => {
     io.to(currentSessionId).emit('state-update', getSessionState(session));
     io.to(currentSessionId).emit('votes-reset');
 
-    console.log(`Votes reset in session ${currentSessionId}`);
+    console.log(`New round in session ${currentSessionId}, history: ${session.history.length} rounds`);
   });
 
   // Promote another participant to moderator (current moderator only)
