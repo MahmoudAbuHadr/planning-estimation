@@ -4,9 +4,27 @@ A simple planning poker app for agile teams to collaboratively estimate user sto
 
 ## What is Planning Poker?
 
-Planning Poker� is a consensus-based estimation technique where agile teams collaboratively estimate product backlog items using relative sizing. Team members vote simultaneously to prevent groupthink and anchoring bias.
+Planning Poker is a consensus-based estimation technique where agile teams collaboratively estimate product backlog items using relative sizing. Team members vote simultaneously to prevent groupthink and anchoring bias.
 
 Reference: [Mountain Goat Software - Planning Poker](https://www.mountaingoatsoftware.com/agile/planning-poker)
+
+---
+
+## Quick Start
+
+```bash
+npm install
+npm start
+```
+
+Server will display:
+```
+Planning Poker server running on:
+  - Local:   http://localhost:3000
+  - Network: http://192.168.x.x:3000
+```
+
+Share the **Network** URL with teammates on your local network.
 
 ---
 
@@ -14,13 +32,15 @@ Reference: [Mountain Goat Software - Planning Poker](https://www.mountaingoatsof
 
 ### 1. Session Management
 - Moderator creates a new poker session
-- Share session link with teammates (localhost)
-- Participants join an existing session
+- Share session link with teammates (auto-detects network IP)
+- Participants join an existing session via link
 
-### 2. Participant Management
-- Enter a display name when joining
-- See who's in the session
-- Identify who has voted vs. who hasn't
+### 2. Poker Table UI
+- Visual poker table with green felt and wood border
+- Players positioned around the table
+- Face-down cards (blue) when voted but not revealed
+- Empty card slots for players who haven't voted
+- Vote counter in center (e.g., "3/5 voted")
 
 ### 3. Voting
 - Card values: **1, 2, 3, 5, 8, 13, 20**
@@ -28,10 +48,16 @@ Reference: [Mountain Goat Software - Planning Poker](https://www.mountaingoatsof
 - Change vote before reveal
 
 ### 4. Reveal & Results (Moderator Only)
-- Moderator triggers reveal (all votes shown simultaneously)
-- Display all votes with participant names
-- Show average
+- Moderator triggers reveal (all cards flip simultaneously)
+- Cards on table show actual vote values
+- Playing card style results with corner values
+- Show average score
 - Moderator resets for next round
+
+### 5. Player Indicators
+- Green badge = Moderator
+- Gold border = You
+- "(you)" suffix on your name
 
 ---
 
@@ -116,3 +142,18 @@ Using Socket.IO rooms for session-based broadcasting:
 | Reset | `state-update` | Votes cleared, revealed=false |
 
 **Key**: Vote values stay hidden on server until moderator reveals.
+
+---
+
+## File Structure
+
+```
+planning-poker/
+├── server.js           # Express + Socket.IO server
+├── package.json        # Dependencies
+├── public/
+│   ├── index.html      # Single page UI
+│   ├── style.css       # Poker table & card styling
+│   └── app.js          # Client-side Socket.IO logic
+└── readme.md           # This file
+```

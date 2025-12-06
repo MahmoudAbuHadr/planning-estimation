@@ -25,13 +25,13 @@ const errorMessage = document.getElementById('error-message');
 const sessionIdDisplay = document.getElementById('session-id-display');
 const copyLinkBtn = document.getElementById('copy-link-btn');
 const moderatorBadge = document.getElementById('moderator-badge');
-const participantsList = document.getElementById('participants-list');
+const participantsAroundTable = document.getElementById('participants-around-table');
+const tableStatus = document.getElementById('table-status');
 const cardsContainer = document.getElementById('cards-container');
 const moderatorControls = document.getElementById('moderator-controls');
 const revealBtn = document.getElementById('reveal-btn');
 const resetBtn = document.getElementById('reset-btn');
 const resultsSection = document.getElementById('results-section');
-const resultsList = document.getElementById('results-list');
 const averageDisplay = document.getElementById('average-display');
 
 // Check for session ID in URL
@@ -137,7 +137,8 @@ socket.on('state-update', (state) => {
 
 socket.on('votes-revealed', ({ votes, average }) => {
   isRevealed = true;
-  showResults(votes, average);
+  showResults(average);
+  updateCardsOnTable(votes);
   updateCardState();
 });
 
@@ -178,13 +179,79 @@ function showSessionPage() {
 }
 
 function updateParticipants(participants) {
-  participantsList.innerHTML = participants.map(p => `
-    <li class="participant ${p.hasVoted ? 'voted' : ''} ${p.isModerator ? 'moderator' : ''}">
-      <span class="vote-indicator"></span>
-      <span>${escapeHtml(p.name)}</span>
-      ${p.isModerator ? '<span>(mod)</span>' : ''}
-    </li>
-  `).join('');
+  // Calculate positions around the table
+  const positions = getPlayerPositions(participants.length);
+
+  // Update table status
+  const votedCount = participants.filter(p => p.hasVoted).length;
+  const totalCount = participants.length;
+  tableStatus.textContent = `${votedCount}/${totalCount} voted`;
+
+  // Render players around the table
+  participantsAroundTable.innerHTML = participants.map((p, index) => {
+    const pos = positions[index];
+    const isYou = p.id === socket.id;
+    const cardClass = p.hasVoted ? 'face-down' : 'no-card';
+
+    return `
+      <div class="player-seat" style="left: ${pos.x}%; top: ${pos.y}%; transform: translate(-50%, -50%);">
+        <div class="player-card ${cardClass}"></div>
+        <span class="player-name ${p.isModerator ? 'is-moderator' : ''} ${isYou ? 'is-you' : ''}">
+          ${escapeHtml(p.name)}${isYou ? ' (you)' : ''}
+        </span>
+      </div>
+    `;
+  }).join('');
+}
+
+// Calculate evenly distributed positions around an ellipse
+function getPlayerPositions(count) {
+  const positions = [];
+  const centerX = 50;
+  const centerY = 50;
+  const radiusX = 42; // Horizontal radius (percentage)
+  const radiusY = 38; // Vertical radius (percentage)
+
+  for (let i = 0; i < count; i++) {
+    // Start from top and go clockwise
+    const angle = (Math.PI * 2 * i / count) - Math.PI / 2;
+    positions.push({
+      x: centerX + radiusX * Math.cos(angle),
+      y: centerY + radiusY * Math.sin(angle)
+    });
+  }
+  return positions;
+}
+
+// Update cards on the table when votes are revealed
+function updateCardsOnTable(votes) {
+  const positions = getPlayerPositions(votes.length);
+
+  tableStatus.textContent = 'Votes revealed!';
+
+  participantsAroundTable.innerHTML = votes.map((v, index) => {
+    const pos = positions[index];
+    const isYou = v.id === socket.id;
+    const hasVote = v.vote !== null;
+    const displayValue = hasVote ? v.vote : '?';
+
+    const cardContent = hasVote
+      ? `<span class="corner top">${displayValue}</span>
+         <span class="center-value">${displayValue}</span>
+         <span class="corner bottom">${displayValue}</span>`
+      : '?';
+
+    return `
+      <div class="player-seat" style="left: ${pos.x}%; top: ${pos.y}%; transform: translate(-50%, -50%);">
+        <div class="player-card ${hasVote ? 'revealed' : 'no-vote'}">
+          ${cardContent}
+        </div>
+        <span class="player-name ${v.isModerator ? 'is-moderator' : ''} ${isYou ? 'is-you' : ''}">
+          ${escapeHtml(v.name)}${isYou ? ' (you)' : ''}
+        </span>
+      </div>
+    `;
+  }).join('');
 }
 
 function selectCard(value) {
@@ -214,23 +281,8 @@ function updateCardState() {
   });
 }
 
-function showResults(votes, average) {
+function showResults(average) {
   resultsSection.classList.remove('hidden');
-
-  resultsList.innerHTML = votes.map(v => {
-    const hasVote = v.vote !== null;
-    const displayValue = hasVote ? v.vote : '?';
-    return `
-      <div class="result-item">
-        <div class="result-card ${hasVote ? '' : 'no-vote'}">
-          <span class="corner top">${displayValue}</span>
-          <span class="center-value">${hasVote ? displayValue : 'No vote'}</span>
-          <span class="corner bottom">${displayValue}</span>
-        </div>
-        <span class="result-name">${escapeHtml(v.name)}</span>
-      </div>
-    `;
-  }).join('');
 
   if (average !== null) {
     averageDisplay.innerHTML = `Average: <strong>${average}</strong>`;
