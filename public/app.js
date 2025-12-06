@@ -217,12 +217,20 @@ function updateCardState() {
 function showResults(votes, average) {
   resultsSection.classList.remove('hidden');
 
-  resultsList.innerHTML = votes.map(v => `
-    <div class="result-item">
-      <span class="result-name">${escapeHtml(v.name)}</span>
-      <span class="result-vote ${v.vote === null ? 'no-vote' : ''}">${v.vote !== null ? v.vote : 'No vote'}</span>
-    </div>
-  `).join('');
+  resultsList.innerHTML = votes.map(v => {
+    const hasVote = v.vote !== null;
+    const displayValue = hasVote ? v.vote : '?';
+    return `
+      <div class="result-item">
+        <div class="result-card ${hasVote ? '' : 'no-vote'}">
+          <span class="corner top">${displayValue}</span>
+          <span class="center-value">${hasVote ? displayValue : 'No vote'}</span>
+          <span class="corner bottom">${displayValue}</span>
+        </div>
+        <span class="result-name">${escapeHtml(v.name)}</span>
+      </div>
+    `;
+  }).join('');
 
   if (average !== null) {
     averageDisplay.innerHTML = `Average: <strong>${average}</strong>`;
