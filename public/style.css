@@ -131,6 +131,20 @@ h2, h3 {
   background: #ddd;
 }
 
+#leave-session-btn {
+  padding: 6px 12px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+#leave-session-btn:hover {
+  background: #c0392b;
+}
+
 #moderator-badge {
   background: #27ae60;
   color: white;

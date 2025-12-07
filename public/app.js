@@ -33,6 +33,33 @@ function clearSession() {
   // Keep USERNAME_KEY so name is remembered
 }
 
+function leaveSession() {
+  // Clear stored session data
+  clearSession();
+
+  // Reset state
+  currentSessionId = null;
+  isModerator = false;
+  selectedCard = null;
+  isRevealed = false;
+
+  // Hide session page, show landing page
+  sessionPage.classList.add('hidden');
+  landingPage.classList.remove('hidden');
+
+  // Reset UI elements
+  moderatorBadge.classList.add('hidden');
+  moderatorControls.classList.add('hidden');
+  resultsSection.classList.add('hidden');
+  historySection.classList.add('hidden');
+  clearCardSelection();
+
+  // Clear URL params
+  const url = new URL(window.location);
+  url.searchParams.delete('session');
+  window.history.replaceState({}, '', url);
+}
+
 // Attempt to rejoin saved session on page load
 socket.on('connect', () => {
   const saved = loadSession();
@@ -62,6 +89,7 @@ const joinBtn = document.getElementById('join-btn');
 const errorMessage = document.getElementById('error-message');
 const sessionIdDisplay = document.getElementById('session-id-display');
 const copyLinkBtn = document.getElementById('copy-link-btn');
+const leaveSessionBtn = document.getElementById('leave-session-btn');
 const moderatorBadge = document.getElementById('moderator-badge');
 const participantsAroundTable = document.getElementById('participants-around-table');
 const tableStatus = document.getElementById('table-status');
@@ -141,6 +169,10 @@ copyLinkBtn.addEventListener('click', () => {
     // If clipboard fails, show the URL in a prompt
     prompt('Copy this link:', url);
   });
+});
+
+leaveSessionBtn.addEventListener('click', () => {
+  leaveSession();
 });
 
 // Clipboard helper with fallback for non-HTTPS contexts
