@@ -501,6 +501,13 @@ function updateHistory(history) {
 
   historySection.classList.remove('hidden');
 
+  // Show/hide clear history button based on moderator status
+  if (isModerator) {
+    clearHistoryBtn.classList.remove('hidden');
+  } else {
+    clearHistoryBtn.classList.add('hidden');
+  }
+
   // Render history items (using name and result instead of average)
   // Moderator can click on name to edit it
   historyList.innerHTML = history.map((item, index) => `
