@@ -49,11 +49,16 @@ function getSessionState(session) {
 }
 
 // Check if all votes are unanimous (everyone voted the same)
+// Returns null if there's no unanimous vote OR if any Dragon (100) vote exists
 function getUnanimousVote(session) {
   const votes = Object.values(session.participants)
     .map(p => p.vote)
     .filter(v => v !== null);
   if (votes.length === 0) return null;
+
+  // If any vote is Dragon (100), require manual entry
+  if (votes.some(v => v === 100)) return null;
+
   return votes.every(v => v === votes[0]) ? votes[0] : null;
 }
 

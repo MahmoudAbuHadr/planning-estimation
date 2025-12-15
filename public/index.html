@@ -57,6 +57,7 @@
       <div class="cards-section">
         <h3>Select Your Estimate</h3>
         <div id="cards-container" class="cards">
+          <button class="card special-card joker-card" data-value="0" title="Won't vote">🃏<span class="card-label">Joker</span></button>
           <button class="card" data-value="1">1</button>
           <button class="card" data-value="2">2</button>
           <button class="card" data-value="3">3</button>
@@ -64,6 +65,7 @@
           <button class="card" data-value="8">8</button>
           <button class="card" data-value="13">13</button>
           <button class="card" data-value="20">20</button>
+          <button class="card special-card dragon-card" data-value="100" title="Too hard to estimate">🐉<span class="card-label">Dragon</span></button>
         </div>
       </div>
 
@@ -102,6 +104,7 @@
         <div class="modal-field">
           <label for="result-value">Result (required):</label>
           <select id="result-value">
+            <option value="0">0 (Joker)</option>
             <option value="1">1</option>
             <option value="2">2</option>
             <option value="3">3</option>
@@ -109,6 +112,7 @@
             <option value="8">8</option>
             <option value="13">13</option>
             <option value="20">20</option>
+            <option value="100">100 (Dragon)</option>
           </select>
         </div>
         <div class="modal-field">
