@@ -50,10 +50,12 @@ function getSessionState(session) {
 
 // Check if all votes are unanimous (everyone voted the same)
 // Returns null if there's no unanimous vote OR if any Dragon (100) vote exists
+// Joker (0) votes are ignored when checking for unanimity
 function getUnanimousVote(session) {
   const votes = Object.values(session.participants)
     .map(p => p.vote)
-    .filter(v => v !== null);
+    .filter(v => v !== null && v !== 0); // Exclude Joker (0) votes
+
   if (votes.length === 0) return null;
 
   // If any vote is Dragon (100), require manual entry
@@ -71,7 +73,11 @@ function getRevealedVotes(session) {
     isModerator: socketId === session.moderatorId
   }));
 
-  const validVotes = votes.filter(v => v.vote !== null).map(v => v.vote);
+  // Filter out null votes and Joker (0) votes when calculating average
+  const validVotes = votes
+    .filter(v => v.vote !== null && v.vote !== 0)
+    .map(v => v.vote);
+
   const average = validVotes.length > 0
     ? (validVotes.reduce((a, b) => a + b, 0) / validVotes.length).toFixed(1)
     : null;
