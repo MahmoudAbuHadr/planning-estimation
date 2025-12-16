@@ -109,7 +109,7 @@ io.on('connection', (socket) => {
     socket.emit('session-created', { sessionId });
     io.to(sessionId).emit('state-update', getSessionState(sessions[sessionId]));
 
-    console.log(`Session ${sessionId} created by ${name}`);
+    console.log(`Session ${sessionId} created by ${name} (ID: ${socket.id})`);
   });
 
   // Join an existing session
@@ -141,7 +141,7 @@ io.on('connection', (socket) => {
       socket.emit('history-update', { history: session.history });
     }
 
-    console.log(`${name} joined session ${sessionId}`);
+    console.log(`User joined session ${sessionId}: ${name} (ID: ${socket.id})`);
   });
 
   // Rejoin after page refresh
@@ -193,7 +193,7 @@ io.on('connection', (socket) => {
       socket.emit('history-update', { history: session.history });
     }
 
-    console.log(`${finalName} rejoined session ${sessionId}`);
+    console.log(`User rejoined session ${sessionId}: ${finalName} (ID: ${socket.id})`);
   });
 
   // Submit a vote
