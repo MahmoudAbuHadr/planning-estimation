@@ -888,3 +888,275 @@ h2, h3 {
     transform: translateY(-2px);
   }
 }
+
+/* ============================================
+   MOBILE RESPONSIVE STYLES
+   ============================================ */
+
+/* Mobile: < 768px (phones) */
+@media (max-width: 767px) {
+  /* General Layout */
+  body {
+    padding: 10px;
+  }
+
+  .container {
+    max-width: 100%;
+  }
+
+  h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+
+  h2 {
+    font-size: 20px;
+  }
+
+  h3 {
+    font-size: 18px;
+  }
+
+  /* Landing Page */
+  #landing-page {
+    padding: 20px;
+  }
+
+  .form-section {
+    margin-bottom: 20px;
+  }
+
+  .form-section input {
+    font-size: 16px; /* Prevent iOS zoom */
+  }
+
+  .form-section button {
+    font-size: 16px;
+    padding: 14px;
+  }
+
+  /* Session Header */
+  .session-header {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 15px;
+  }
+
+  .session-info {
+    flex: 1 1 100%;
+    order: 1;
+  }
+
+  #moderator-badge {
+    order: 2;
+    min-height: 44px;
+    padding: 10px 16px;
+    font-size: 15px;
+  }
+
+  #leave-session-btn {
+    order: 3;
+    min-height: 44px;
+    padding: 10px 16px;
+    font-size: 15px;
+  }
+
+  #copy-link-btn {
+    min-height: 44px;
+    padding: 10px 16px;
+    font-size: 15px;
+  }
+
+  /* Poker Table */
+  .poker-table-container {
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+
+  .poker-table {
+    max-width: 100%;
+    padding-top: 30px;
+    padding-bottom: 30px;
+  }
+
+  .table-surface {
+    padding: 20px 10px;
+    min-height: 120px;
+  }
+
+  .table-center {
+    font-size: 12px;
+  }
+
+  .player-card {
+    width: 40px;
+    height: 56px;
+  }
+
+  .player-card .corner {
+    font-size: 8px;
+  }
+
+  .player-card .center-value {
+    font-size: 14px;
+  }
+
+  .player-name {
+    font-size: 10px;
+    max-width: 60px;
+    padding: 3px 6px;
+  }
+
+  /* Card Selection Grid - CRITICAL FIX */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .card {
+    width: 100%;
+    min-width: 90px;
+    height: 120px;
+    font-size: 20px;
+  }
+
+  .card.special-card {
+    font-size: 28px;
+  }
+
+  .card .card-label {
+    font-size: 9px;
+  }
+
+  /* Moderator Controls */
+  #moderator-controls {
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+
+  #moderator-controls button {
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 24px;
+    font-size: 15px;
+  }
+
+  /* Results */
+  #average-display {
+    font-size: 16px;
+    padding: 12px;
+  }
+
+  #average-display strong {
+    font-size: 20px;
+  }
+
+  /* History Section */
+  .history-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .history-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+
+  .history-item .round-name {
+    width: 100%;
+  }
+
+  .history-item .round-result {
+    font-size: 20px;
+  }
+
+  #history-summary {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* Modal */
+  .modal-content {
+    width: 95%;
+    max-width: 95%;
+    padding: 20px;
+  }
+
+  .modal-content h3 {
+    font-size: 18px;
+  }
+
+  .modal-field label {
+    font-size: 13px;
+  }
+
+  .modal-field select,
+  .modal-field input {
+    font-size: 16px; /* Prevent iOS zoom */
+    padding: 12px;
+  }
+
+  .modal-buttons {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .modal-btn {
+    width: 100%;
+  }
+
+  /* Dragon Animation */
+  .dragon-emoji {
+    font-size: 120px; /* Reduced from 180px */
+  }
+
+  .dragon-text {
+    font-size: 28px; /* Reduced from 42px */
+    letter-spacing: 1px;
+    padding: 0 20px;
+  }
+
+  .dragon-flames {
+    font-size: 32px; /* Reduced from 48px */
+  }
+}
+
+/* Small phones: < 400px */
+@media (max-width: 399px) {
+  .session-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  /* Cards: 2 columns for very narrow screens */
+  .cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Dragon Animation - even smaller */
+  .dragon-emoji {
+    font-size: 80px;
+  }
+
+  .dragon-text {
+    font-size: 20px;
+    word-break: break-word;
+  }
+
+  .dragon-flames {
+    font-size: 24px;
+  }
+}
+
+/* Tablet: 768px - 1023px */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .cards {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
