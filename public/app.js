@@ -154,8 +154,10 @@ joinBtn.addEventListener('click', () => {
 });
 
 copyLinkBtn.addEventListener('click', () => {
-  // Use network IP if available, otherwise fall back to current origin
-  const baseUrl = serverInfo
+  // Always use current origin (hostname) for deployed environments
+  // Only use network IP if on localhost
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const baseUrl = isLocalhost && serverInfo
     ? `http://${serverInfo.ip}:${serverInfo.port}`
     : window.location.origin;
   const url = `${baseUrl}?session=${currentSessionId}`;
