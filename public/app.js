@@ -346,6 +346,12 @@ socket.on('votes-revealed', ({ votes, average }) => {
   showResults(average);
   updateCardsOnTable(votes);
   updateCardState();
+
+  // Check if any Dragon cards were played
+  const hasDragon = votes.some(v => v.vote === 100);
+  if (hasDragon) {
+    showDragonAnimation();
+  }
 });
 
 socket.on('votes-reset', () => {
@@ -459,21 +465,46 @@ function updateCardsOnTable(votes) {
     const pos = positions[index];
     const isYou = v.id === socket.id;
     const hasVote = v.vote !== null;
-    const displayValue = hasVote ? v.vote : '?';
     const canPromote = isModerator && !isYou;
 
-    const joker = '🃏';
-    const cardContent = hasVote
-      ? `<span class="corner top">${displayValue}</span>
+    // Determine display value and card content
+    let displayValue;
+    let cardContent;
+
+    let cardClass = 'no-vote';
+
+    if (!hasVote) {
+      // No vote cast
+      displayValue = '🃏';
+      cardContent = `<span class="corner top">${displayValue}</span>
          <span class="center-value">${displayValue}</span>
-         <span class="corner bottom">${displayValue}</span>`
-      : `<span class="corner top">${joker}</span>
-         <span class="center-value">${joker}</span>
-         <span class="corner bottom">${joker}</span>`;
+         <span class="corner bottom">${displayValue}</span>`;
+    } else if (v.vote === 0) {
+      // Joker card selected
+      displayValue = '🃏';
+      cardClass = 'revealed joker-revealed';
+      cardContent = `<span class="corner top">${displayValue}</span>
+         <span class="center-value">${displayValue}</span>
+         <span class="corner bottom">${displayValue}</span>`;
+    } else if (v.vote === 100) {
+      // Dragon card selected
+      displayValue = '🐉';
+      cardClass = 'revealed dragon-revealed';
+      cardContent = `<span class="corner top">${displayValue}</span>
+         <span class="center-value">${displayValue}</span>
+         <span class="corner bottom">${displayValue}</span>`;
+    } else {
+      // Regular numeric vote
+      displayValue = v.vote;
+      cardClass = 'revealed';
+      cardContent = `<span class="corner top">${displayValue}</span>
+         <span class="center-value">${displayValue}</span>
+         <span class="corner bottom">${displayValue}</span>`;
+    }
 
     return `
       <div class="player-seat ${canPromote ? 'can-promote' : ''}" data-participant-id="${v.id}" style="left: ${pos.x}%; top: ${pos.y}%; transform: translate(-50%, -50%);">
-        <div class="player-card ${hasVote ? 'revealed' : 'no-vote'}">
+        <div class="player-card ${cardClass}">
           ${cardContent}
         </div>
         <span class="player-name ${v.isModerator ? 'is-moderator' : ''} ${isYou ? 'is-you' : ''}">
@@ -604,4 +635,28 @@ function startEditingRoundName(e) {
   });
 
   input.addEventListener('blur', saveEdit);
+}
+
+// Show dragon animation when Dragon card is revealed
+function showDragonAnimation() {
+  // Create dragon overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'dragon-overlay';
+  overlay.innerHTML = `
+    <div class="dragon-animation">
+      <div class="dragon-emoji">🐉</div>
+      <div class="dragon-text">TOO HARD TO ESTIMATE!</div>
+      <div class="dragon-flames">🔥🔥🔥</div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  // Remove after animation completes
+  setTimeout(() => {
+    overlay.classList.add('fade-out');
+    setTimeout(() => {
+      document.body.removeChild(overlay);
+    }, 500);
+  }, 2500);
 }
